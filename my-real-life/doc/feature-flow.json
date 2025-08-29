@@ -1,0 +1,610 @@
+{
+  "application": {
+    "name": "My Real Life",
+    "architecture": "feature_based_polymorphic_modular",
+    "core_entities": ["Person", "Event", "EventType"],
+    "features": ["Calendar", "Feed", "Profile"]
+  },
+  "type_definitions": {
+    "NavigationItem": {
+      "id": "string",
+      "label": "string",
+      "icon": "string (icon_name)",
+      "route": "string (url_path)",
+      "active": "boolean"
+    },
+    "MenuOption": {
+      "id": "string",
+      "label": "string",
+      "value": "string",
+      "icon": "string (optional)",
+      "description": "string (optional)"
+    },
+    "HeaderConfig": {
+      "title": "string",
+      "show_back_button": "boolean",
+      "actions": "HeaderAction[]",
+      "theme": "enum ['light', 'dark', 'auto']"
+    },
+    "StateHandlers": {
+      "on_loading_change": "(loading: LoadingState) => void",
+      "on_error": "(error: Error) => void",
+      "on_data_change": "(data: any) => void"
+    },
+    "PermissionSet": {
+      "entity": "string",
+      "actions": "enum ['create', 'read', 'update', 'delete'][]",
+      "conditions": "PermissionCondition[] (optional)"
+    },
+    "EventBatchRequest": {
+      "person_ids": "string[]",
+      "filters": {
+        "date_range": "DateRange (optional)",
+        "event_types": "string[] (optional)",
+        "privacy_levels": "enum ['private', 'friends', 'public'][] (optional)",
+        "owner_only": "boolean (optional)"
+      },
+      "include_event_types": "boolean (optional)",
+      "include_persons": "boolean (optional)"
+    },
+    "EventBatchResponse": {
+      "events": "Event[] (with type_id references only)",
+      "event_types": "EventType[] (unique types for lookup - optional)",
+      "persons": "Person[] (event owners for social features - optional)",
+      "metadata": {
+        "total_count": "number",
+        "person_counts": "Record<string, number>"
+      }
+    },
+    "HeaderAction": {
+      "id": "string",
+      "label": "string",
+      "icon": "string (optional)",
+      "handler": "(event: Event) => void",
+      "variant": "enum ['primary', 'secondary', 'danger']"
+    },
+    "LoadingState": {
+      "state": "enum ['idle', 'loading', 'success', 'error']",
+      "message": "string (optional)",
+      "progress": "number (0-100, optional)",
+      "error_code": "string (optional)",
+      "retry_count": "number (optional)"
+    },
+    "PermissionCondition": {
+      "field": "string",
+      "operator": "enum ['equals', 'not_equals', 'in', 'not_in']",
+      "value": "any"
+    },
+    "DateRange": {
+      "start_date": "date",
+      "end_date": "date"
+    },
+    "MenuComponent": {
+      "type": "string (component_name)",
+      "extends": "string (base_component)",
+      "options": "MenuOption[]",
+      "handle_selection": "(option: MenuOption) => void"
+    },
+    "ReactComponent": {
+      "type": "string (component_type)",
+      "props": "Record<string, any> (optional)",
+      "children": "ReactNode (optional)"
+    },
+    "Error": {
+      "message": "string",
+      "code": "string (optional)",
+      "stack": "string (optional)"
+    },
+    "ReflectionRequest": {
+      "event_id": "string",
+      "targets": "ReflectionTargetInput[]"
+    },
+    "ReflectionTargetInput": {
+      "target_type": "enum ['activity', 'person', 'location', 'goal', 'habit']",
+      "target_id": "string",
+      "status": "enum ['happened', 'partial', 'missed', 'cancelled', 'rescheduled']",
+      "quality_rating": "number (1-10, optional)",
+      "notes": "string (optional)",
+      "metadata": "Record<string, any> (flexible data per target type)"
+    },
+    "InteractionRatingInput": {
+      "person_id": "string",
+      "quality_rating": "number (1-10)",
+      "quality_notes": "string (optional)",
+      "connection_level": "enum ['surface', 'meaningful', 'deep', 'transformative']",
+      "social_battery_impact": "enum ['draining', 'neutral', 'energizing']"
+    },
+    "ReflectionSummary": {
+      "total_reflections": "number",
+      "target_type_breakdown": "Record<string, number>",
+      "average_quality_by_type": "Record<string, number>",
+      "top_performers": "Record<string, any[]>",
+      "quality_trends": "Record<string, number>",
+      "insights": "Record<string, any>"
+    }
+  },
+  "data_models": {
+    "Person": {
+      "id": "string (uuid)",
+      "profile_url": "string (url_pattern: ^https?://[a-zA-Z0-9.-]+/[a-zA-Z0-9._/-]+$)",
+      "profile_picture_url": "string (image_url_pattern: ^https?://[a-zA-Z0-9.-]+/.*\\.(jpg|jpeg|png|webp|svg)$)",
+      "first_name": "string",
+      "last_name": "string", 
+      "description": "string",
+      "friends": "Person[] (relationship)",
+      "events": "Event[] (relationship)",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    },
+    "EventType": {
+      "id": "string (uuid)",
+      "title": "string",
+      "color": "string (hex)", 
+      "icon": "string (optional)",
+      "created_by": "string (Person.id)",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    },
+    "Event": {
+      "id": "string (uuid)",
+      "owner_id": "string (Person.id)",
+      "type_id": "string (EventType.id)",
+      "title": "string",
+      "date": "date",
+      "time": "time",
+      "location": {
+        "name": "string",
+        "address": "string", 
+        "coordinates": {
+          "latitude": "number",
+          "longitude": "number"
+        },
+        "place_id": "string (optional)",
+        "map_url": "string (url_pattern: ^https?://(maps\\.google\\.com|goo\\.gl|maps\\.apple\\.com)/.*$)"
+      },
+      "description": "string",
+      "attendees": [{
+        "person_id": "string (Person.id)",
+        "relationship_type": "enum ['owner', 'friend', 'public']",
+        "invitation_status": "enum ['pending', 'accepted', 'declined']"
+      }],
+      "attachments": "Attachment[]",
+      "privacy": "enum ['private', 'friends', 'public']",
+      "status": "enum ['scheduled', 'completed', 'cancelled', 'no_show']",
+      "allow_reflections": "boolean (default: true)",
+      "reflection_window_hours": "number (default: 48)",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    },
+    "Attachment": {
+      "id": "string (uuid)",
+      "event_id": "string (Event.id)",
+      "file_url": "string (url_pattern: ^https?://[a-zA-Z0-9.-]+/.*$)",
+      "file_type": {
+        "category": "enum ['image', 'video', 'audio', 'document', 'link']",
+        "extension": "enum ['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.mp4', '.mov', '.avi', '.pdf', '.doc', '.docx', '.txt', '.md']",
+        "mime_type": "string"
+      },
+      "created_at": "datetime"
+    },
+    "EventReflection": {
+      "id": "string (uuid)",
+      "event_id": "string (Event.id)",
+      "user_id": "string (User.id)",
+      "reflection_completed_at": "datetime",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    },
+    "ReflectionTarget": {
+      "id": "string (uuid)",
+      "reflection_id": "string (EventReflection.id)",
+      "target_type": "enum ['activity', 'person', 'location', 'goal', 'habit']",
+      "target_id": "string (polymorphic - references different tables based on target_type)",
+      "status": "enum ['happened', 'partial', 'missed', 'cancelled', 'rescheduled']",
+      "quality_rating": "number (1-10, optional)",
+      "notes": "string (optional)",
+      "metadata": "Record<string, any> (flexible data per target type)",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    },
+    "ReflectionTargetType": {
+      "id": "string (uuid)",
+      "name": "string ('activity', 'person', 'location', etc.)",
+      "schema": "Record<string, any> (defines metadata structure for this target type)",
+      "validation_rules": "Record<string, any> (defines rating scales, required fields)",
+      "display_config": "Record<string, any> (UI configuration for this target type)",
+      "is_active": "boolean",
+      "created_at": "datetime"
+    },
+    "InteractionRating": {
+      "person_id": "string (Person.id)",
+      "quality_rating": "number (1-10)",
+      "quality_notes": "string (optional)",
+      "connection_level": "enum ['surface', 'meaningful', 'deep', 'transformative']",
+      "social_battery_impact": "enum ['draining', 'neutral', 'energizing']"
+    }
+  },
+  "features": {
+    "Calendar": {
+      "interface": "FeatureInterface",
+      "permissions": {
+        "Event": "enum ['create', 'read', 'update', 'delete']"
+      },
+      "components": {
+        "menu": {
+          "type": "CalendarMenu",
+          "extends": "AbstractMenu",
+          "options": ["day", "3_day", "week", "month", "year"]
+        },
+        "main_content": {
+          "type": "CalendarView",
+          "props": {
+            "view_type": "enum ['day', '3_day', 'week', 'month', 'year']",
+            "events": "Event[]",
+            "current_person": "Person"
+          }
+        }
+      },
+      "state_management": {
+        "current_view": "enum ['day', '3_day', 'week', 'month', 'year']",
+        "selected_date": "date",
+        "events": "Event[]",
+        "loading_state": "enum ['idle', 'loading', 'success', 'error']",
+        "error_message": "string (optional)"
+      },
+      "api_endpoints": {
+        "get_events_batch": "POST /api/events/batch (unified API - handles all features via request parameters)",
+        "create_event": "POST /api/events",
+        "update_event": "PUT /api/events/:id",
+        "delete_event": "DELETE /api/events/:id",
+        "get_event_types": "GET /api/event-types?person_id (for EventType management)",
+        "create_event_type": "POST /api/event-types", 
+        "update_event_type": "PUT /api/event-types/:id",
+        "delete_event_type": "DELETE /api/event-types/:id"
+      }
+    },
+    "Feed": {
+      "interface": "FeatureInterface", 
+      "permissions": {
+        "Event": "enum ['read', 'update']",
+        "Person": "enum ['read']"
+      },
+      "components": {
+        "menu": {
+          "type": "FeedMenu",
+          "extends": "AbstractMenu",
+          "options": ["timeline", "friends", "discover"]
+        },
+        "main_content": {
+          "type": "FeedView",
+          "props": {
+            "friends_events": "Event[]",
+            "current_person": "Person"
+          }
+        }
+      },
+      "state_management": {
+        "friends": "Person[]",
+        "friends_events": "Event[]",
+        "feed_filter": "enum ['timeline', 'friends', 'discover']",
+        "loading_state": "enum ['idle', 'loading', 'success', 'error']",
+        "error_message": "string (optional)"
+      },
+      "api_endpoints": {
+        "get_events_batch": "POST /api/events/batch (unified API - handles all features via request parameters)",
+        "get_friends": "GET /api/friends?person_id",
+        "update_event_interaction": "PUT /api/events/:id/interaction"
+      }
+    },
+    "Profile": {
+      "interface": "FeatureInterface",
+      "permissions": {
+        "Person": "enum ['read', 'update']",
+        "Event": "enum ['read', 'update', 'delete']"
+      },
+      "components": {
+        "menu": {
+          "type": "ProfileMenu", 
+          "extends": "AbstractMenu",
+          "options": ["settings", "privacy", "friends"]
+        },
+        "main_content": {
+          "type": "ProfileView",
+          "sections": ["biography", "life_dashboard", "events"]
+        }
+      },
+      "sections": {
+        "biography": {
+          "type": "BiographySection",
+          "data": {
+            "person": "Person",
+            "friends": "Person[]"
+          }
+        },
+        "life_dashboard": {
+          "type": "LifeDashboardSection",
+          "metrics": {
+            "life_balance_pie_chart": {
+              "type": "PieChartComponent",
+              "data_source": "calculated_from_events",
+              "categories": ["work", "personal", "social", "health", "leisure"]
+            },
+            "goal_progress": {
+              "type": "ProgressComponent",
+              "data_source": "user_defined_goals"
+            },
+            "quality_of_life_indicator": {
+              "type": "ScoreComponent",
+              "calculation": "wellness_algorithm"
+            },
+            "social_battery_indicator": {
+              "type": "BatteryComponent",
+              "calculation": "social_events_frequency"
+            },
+            "relationship_insights": {
+              "type": "InsightsComponent",
+              "data_source": "friend_interaction_analytics"
+            }
+          }
+        },
+        "events": {
+          "type": "EventsSection",
+          "data": "Event[] (owned_by_current_person)",
+          "actions": ["read", "update", "delete"]
+        }
+      },
+      "state_management": {
+        "current_person": "Person",
+        "dashboard_metrics": "DashboardData",
+        "user_events": "Event[]",
+        "loading_state": "enum ['idle', 'loading', 'success', 'error']",
+        "error_message": "string (optional)"
+      },
+      "api_endpoints": {
+        "get_events_batch": "POST /api/events/batch (unified API - handles all features via request parameters)",
+        "get_person": "GET /api/person/:id",
+        "update_person": "PUT /api/person/:id",
+        "get_dashboard_data": "GET /api/dashboard/:person_id",
+        "get_event_types": "GET /api/event-types?person_id (for EventType management)",
+        "create_event_type": "POST /api/event-types", 
+        "update_event_type": "PUT /api/event-types/:id",
+        "delete_event_type": "DELETE /api/event-types/:id",
+        "create_reflection": "POST /api/events/:id/reflection",
+        "get_reflection": "GET /api/events/:id/reflection",
+        "update_reflection": "PUT /api/events/:id/reflection", 
+        "delete_reflection": "DELETE /api/events/:id/reflection",
+        "add_reflection_target": "POST /api/reflections/:id/targets",
+        "update_reflection_target": "PUT /api/reflection-targets/:id",
+        "delete_reflection_target": "DELETE /api/reflection-targets/:id",
+        "get_reflection_summary": "GET /api/reflections/summary?person_id&date_range&target_types",
+        "get_reflectable_events": "GET /api/events/reflectable?person_id",
+        "get_target_type_config": "GET /api/reflection-target-types",
+        "get_polymorphic_entities": "GET /api/reflection-entities?target_type&event_id"
+      }
+    }
+  },
+  "interfaces": {
+    "FeatureInterface": {
+      "title": "string",
+      "navigation_items": "NavigationItem[]",
+      "menu_component": "MenuComponent",
+      "main_content": "ReactComponent",
+      "header_config": "HeaderConfig",
+      "state_handlers": "StateHandlers",
+      "permissions": "PermissionSet[]"
+    },
+    "AbstractMenu": {
+      "options": "MenuOption[]",
+      "handle_selection": "(option: MenuOption) => void",
+      "render": "() => ReactComponent"
+    },
+    "DashboardData": {
+      "life_balance": "Record<string, number>",
+      "quality_of_life_score": "number (0-100)",
+      "social_battery": "number (0-100)",
+      "goal_progress": "Record<string, number>",
+      "relationship_insights": "Record<string, any>"
+    }
+  },
+  "relationships": {
+    "Person_to_Person": {
+      "type": "many_to_many",
+      "relationship": "friends",
+      "junction_table": "friendships"
+    },
+    "Person_to_Event": {
+      "type": "one_to_many", 
+      "relationship": "owner",
+      "foreign_key": "owner_id"
+    },
+    "Event_to_EventType": {
+      "type": "many_to_one",
+      "relationship": "type",
+      "foreign_key": "type_id"
+    },
+    "Event_to_Person": {
+      "type": "many_to_many",
+      "relationship": "attendees",
+      "junction_table": "event_attendees",
+      "additional_fields": ["relationship_type", "invitation_status"]
+    },
+    "Event_to_Attachment": {
+      "type": "one_to_many",
+      "relationship": "attachments",
+      "foreign_key": "event_id"
+    },
+    "Event_to_EventReflection": {
+      "type": "one_to_one",
+      "relationship": "reflection",
+      "foreign_key": "event_id"
+    },
+    "EventReflection_to_ReflectionTarget": {
+      "type": "one_to_many",
+      "relationship": "targets",
+      "foreign_key": "reflection_id"
+    },
+    "ReflectionTarget_to_PolymorphicEntity": {
+      "type": "polymorphic",
+      "relationship": "target_entity",
+      "polymorphic_key": "target_type",
+      "foreign_key": "target_id",
+      "target_mapping": {
+        "activity": "Event",
+        "person": "Person", 
+        "location": "Location",
+        "goal": "Goal (future entity)",
+        "habit": "Habit (future entity)"
+      }
+    },
+    "ReflectionTargetType_to_ReflectionTarget": {
+      "type": "one_to_many",
+      "relationship": "targets",
+      "foreign_key": "target_type"
+    }
+  },
+  "business_rules": {
+    "event_permissions": {
+      "owner": "enum ['create', 'read', 'update', 'delete']",
+      "friend": "enum ['read', 'update_interaction']",
+      "public": "enum ['read']"
+    },
+    "event_type_permissions": {
+      "owner": "enum ['create', 'read', 'update', 'delete']"
+    },
+    "default_event_types": {
+      "description": "Seed data provided during user onboarding for EventType customization",
+      "work": { "title": "Work", "color": "#2563eb", "icon": "briefcase" },
+      "personal": { "title": "Personal", "color": "#dc2626", "icon": "user" },
+      "social": { "title": "Social", "color": "#16a34a", "icon": "users" },
+      "health": { "title": "Health", "color": "#ca8a04", "icon": "heart" },
+      "leisure": { "title": "Leisure", "color": "#9333ea", "icon": "gamepad" }
+    },
+    "privacy_levels": {
+      "private": "only_owner",
+      "friends": "owner_and_friends", 
+      "public": "anyone"
+    },
+    "dashboard_calculations": {
+      "life_balance": "calculate_time_distribution_from_events",
+      "quality_of_life": "wellness_algorithm_based_on_event_patterns",
+      "social_battery": "frequency_and_duration_of_social_events"
+    },
+    "reflection_rules": {
+      "reflection_window": {
+        "default_hours": 48,
+        "max_hours": 168,
+        "description": "Window after event end time when reflection can be submitted"
+      },
+      "target_type_configuration": {
+        "activity": {
+          "status_options": ["happened", "partial", "missed", "cancelled", "rescheduled"],
+          "rating_scale": "1-10",
+          "required_fields": ["status"],
+          "optional_fields": ["quality_rating", "notes", "metadata"],
+          "metadata_schema": {
+            "duration_actual_vs_planned": "number (minutes)",
+            "energy_level_before": "number (1-10)",
+            "energy_level_after": "number (1-10)"
+          }
+        },
+        "person": {
+          "status_options": ["happened", "partial", "missed"],
+          "rating_scale": "1-10", 
+          "required_fields": ["status"],
+          "optional_fields": ["quality_rating", "notes", "metadata"],
+          "metadata_schema": {
+            "connection_level": "enum ['surface', 'meaningful', 'deep', 'transformative']",
+            "social_battery_impact": "enum ['draining', 'neutral', 'energizing']",
+            "conversation_topics": "string[]"
+          }
+        },
+        "location": {
+          "status_options": ["visited", "partial", "missed"],
+          "rating_scale": "1-10",
+          "required_fields": ["status"],
+          "optional_fields": ["quality_rating", "notes", "metadata"],
+          "metadata_schema": {
+            "atmosphere_rating": "number (1-10)",
+            "accessibility": "number (1-10)",
+            "would_return": "boolean"
+          }
+        }
+      },
+      "validation_rules": {
+        "quality_rating": "number between 1-10 inclusive (optional)",
+        "status": "must_match_target_type_options",
+        "metadata": "must_conform_to_target_type_schema",
+        "polymorphic_integrity": "target_id_must_exist_in_target_type_table"
+      },
+      "reflection_permissions": {
+        "create": "event_owner_only",
+        "read": "event_owner_only", 
+        "update": "event_owner_only_within_window",
+        "delete": "event_owner_only"
+      },
+      "reflection_triggers": {
+        "event_completion": "automatic_prompt_after_event_ends",
+        "manual": "user_initiated_reflection_creation",
+        "batch_processing": "daily_reminder_for_unreflected_events"
+      },
+      "analytics_calculations": {
+        "quality_trends": "monthly_average_by_target_type",
+        "polymorphic_insights": "cross_target_type_correlation_analysis",
+        "life_optimization": "target_performance_ranking_and_recommendations"
+      }
+    },
+    "batch_api_usage_patterns": {
+      "calendar_view": {
+        "person_ids": ["current_user_id"],
+        "filters": {
+          "date_range": "selected_date_range",
+          "owner_only": true
+        },
+        "include_event_types": true
+      },
+      "feed_view": {
+        "person_ids": ["friend_id_1", "friend_id_2", "friend_id_n"],
+        "filters": {
+          "privacy_levels": ["friends", "public"],
+          "date_range": "selected_date_range (optional)"
+        },
+        "include_event_types": false,
+        "include_persons": true
+      },
+      "profile_view": {
+        "person_ids": ["current_user_id"],
+        "filters": {
+          "owner_only": true
+        },
+        "include_event_types": true
+      }
+    },
+    "input_validation": {
+      "url_patterns": {
+        "profile_url": "^https?://[a-zA-Z0-9.-]+/[a-zA-Z0-9._/-]+$",
+        "profile_picture_url": "^https?://[a-zA-Z0-9.-]+/.*\\\\.(jpg|jpeg|png|webp|svg)$",
+        "file_url": "^https?://[a-zA-Z0-9.-]+/.*$",
+        "map_url": "^https?://(maps\\\\.google\\\\.com|goo\\\\.gl|maps\\\\.apple\\\\.com)/.*$"
+      },
+      "file_security": {
+        "allowed_extensions": [".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif", ".mp4", ".mov", ".avi", ".pdf", ".doc", ".docx", ".txt", ".md"],
+        "max_file_size": "10MB",
+        "scan_for_malware": true
+      },
+      "error_handling": {
+        "retry_attempts": 3,
+        "timeout_duration": "30s",
+        "error_codes": ["network_error", "validation_error", "permission_error", "server_error"]
+      }
+    }
+  },
+  "technical_requirements": {
+    "framework": "Next.js 15.4.5 App Router",
+    "database": "Supabase PostgreSQL", 
+    "authentication": "Supabase Auth",
+    "styling": "Tailwind CSS v4",
+    "state_management": "React Server Components + useState/useContext",
+    "real_time": "Supabase real-time subscriptions",
+    "file_storage": "Supabase Storage"
+  }
+}
